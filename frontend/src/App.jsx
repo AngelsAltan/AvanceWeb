@@ -1,46 +1,37 @@
-import Hero from "./components/Hero";
-import Services from "./components/Services";
-import Cobertura from "./components/Cobertura";
-import Functionality from "./components/Functionality";
-import AboutUs from "./components/AboutUs";
-import Contact from "./components/Contact";
-import Pricing from "./components/Pricing";
-import Faq from "./components/Faq";
-import Footer from "./components/footer";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Envios from "./pages/Envios";
+import Admin from "./pages/Admin";
 
-function App() {
+export default function App() {
   return (
-    <div>
-      <main>
-        <section id="hero">
-          <Hero />
-        </section>
-        <section id="servicios">
-          <Services />
-        </section>
-        <section id="nosotros">
-          <AboutUs />
-        </section>
-        <section id="cobertura">
-          <Cobertura />
-        </section>
-        <section id="funcionalidad">
-          <Functionality />
-        </section>
-        <section id="faq">
-          <Faq />
-        </section>
-        <section id="pricing">
-          <Pricing/>
-        </section>
-        <section id="contacto">
-          <Contact />
-        </section>
-        
-      </main>
-      <Footer />
-    </div>
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/envios"
+          element={
+            <ProtectedRoute>
+              <Envios />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute adminOnly>
+              <Admin />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;

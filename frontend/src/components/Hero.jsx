@@ -26,7 +26,7 @@ const Hero = () => {
 			<div className={styles.content}>
 				<div className={styles.copy}>
 					<p className={styles.title}>
-						AeroPaq
+						SkyShip Express
 					</p>
 					<p className={styles.subtitle}>
 						Conectamos personas y empresas a traves de envios nacionales e internacionales con

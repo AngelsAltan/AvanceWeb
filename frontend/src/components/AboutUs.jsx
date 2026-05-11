@@ -19,7 +19,7 @@ export default function AboutUs() {
 					<div className={styles.heroCopy}>
 						<h3 className={styles.heroTitle}>Conectando distancias</h3>
 						<p className={styles.heroText}>
-							En AeroPaq Logistica nacimos con una premisa clara: hacer que las
+							En SkyShip Express nacimos con una premisa clara: hacer que las
 							fronteras desaparezcan. Somos un equipo de profesionales en ingenieria y
 							logistica, apasionados por optimizar cadenas de suministro y brindar un
 							servicio al cliente impecable.

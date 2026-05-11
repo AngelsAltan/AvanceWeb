@@ -216,7 +216,7 @@ export default function Contact() {
 						<div className={styles.modalIcon}>✓</div>
 						<h3 className={styles.modalTitle}>Mensaje enviado</h3>
 						<p className={styles.modalText}>
-							Hemos recibido tus datos correctamente. Un asesor de AeroPaq se pondra
+							Hemos recibido tus datos correctamente. Un asesor de SkyShip Express se pondra
 							en contacto contigo muy pronto.
 						</p>
 						<button

@@ -1,0 +1,14 @@
+# Claude Code
+.claude/
+
+# Python
+backend/.env
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/static/
+
+# Node
+frontend/node_modules/
+frontend/dist/

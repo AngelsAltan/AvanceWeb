@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "vite build && xcopy /E /I /Y dist\\* ..\\backend\\static\\"
   },
   "dependencies": {
     "country-state-city": "^3.2.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router-dom": "^7.15.0",
     "swiper": "^12.1.2"
   },
   "devDependencies": {
