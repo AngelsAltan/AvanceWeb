@@ -523,14 +523,15 @@ function GestionEnvios() {
 
 /* ── Admin principal ── */
 const TABS = [
-  { id: "dashboard", label: "Dashboard"         },
-  { id: "usuarios",  label: "Usuarios"          },
-  { id: "envios",    label: "Envios"            },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "usuarios",  label: "Usuarios"  },
+  { id: "envios",    label: "Envios"    },
 ];
 
 export default function Admin() {
-  const [tab,   setTab]   = useState("dashboard");
-  const [stats, setStats] = useState(null);
+  const [tab,          setTab]          = useState("dashboard");
+  const [stats,        setStats]        = useState(null);
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
 
   const loadStats = useCallback(async () => {
     const r = await api("/api/admin/stats");
@@ -539,16 +540,35 @@ export default function Admin() {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
+  const cambiarTab = (id) => {
+    setTab(id);
+    setSidebarOpen(false);
+  };
+
   return (
     <div className={styles.page}>
-      <aside className={styles.sidebar}>
+      {/* Botón hamburger — solo visible en mobile */}
+      <button
+        className={styles.hamburger}
+        onClick={() => setSidebarOpen(o => !o)}
+        aria-label="Abrir menú"
+      >
+        {sidebarOpen ? "✕" : "☰"}
+      </button>
+
+      {/* Overlay que cierra el sidebar al tocar fuera */}
+      {sidebarOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ""}`}>
         <div className={styles.sidebarBrand}>
           SkyShip Admin
         </div>
         {TABS.map(t => (
           <button key={t.id}
             className={`${styles.sidebarLink} ${tab === t.id ? styles.active : ""}`}
-            onClick={() => setTab(t.id)}>
+            onClick={() => cambiarTab(t.id)}>
             {t.label}
           </button>
         ))}

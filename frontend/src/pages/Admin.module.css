@@ -1,10 +1,41 @@
-.page { min-height:100vh; background:#f5f7ff; display:flex; }
+.page { min-height:100vh; background:#f5f7ff; display:flex; overflow-x:hidden; }
 
 /* ── Sidebar ── */
 .sidebar {
   width:220px; background:#1a1a2e; color:#fff;
   display:flex; flex-direction:column; padding:1.5rem 0;
   position:sticky; top:0; height:100vh; flex-shrink:0;
+  z-index:100;
+}
+
+@media(max-width:768px){
+  .sidebar {
+    position:fixed; left:0; top:0; height:100vh;
+    transform:translateX(-100%); transition:transform 0.25s ease;
+    box-shadow:4px 0 24px rgba(0,0,0,0.35);
+  }
+  .sidebar.open { transform:translateX(0); }
+}
+
+/* ── Hamburger (solo mobile) ── */
+.hamburger {
+  display:none; position:fixed; top:1rem; left:1rem;
+  z-index:150; background:#1a1a2e; color:#fff;
+  border:none; border-radius:8px; width:40px; height:40px;
+  font-size:1.2rem; cursor:pointer; align-items:center; justify-content:center;
+  box-shadow:0 2px 10px rgba(0,0,0,0.25);
+}
+@media(max-width:768px){ .hamburger { display:flex; } }
+
+/* ── Overlay mobile ── */
+.sidebarOverlay {
+  display:none;
+}
+@media(max-width:768px){
+  .sidebarOverlay {
+    display:block; position:fixed; inset:0;
+    background:rgba(0,0,0,0.5); z-index:99;
+  }
 }
 .sidebarBrand {
   display:flex; align-items:center; gap:0.5rem;
@@ -22,13 +53,22 @@
 .sidebarLink.active { color:#fff; background:rgba(67,97,238,0.2); border-left-color:#4361ee; }
 
 /* ── Content ── */
-.content { flex:1; padding:2rem; overflow-x:auto; }
+.content { flex:1; padding:2rem; overflow-x:auto; min-width:0; }
 .pageTitle { font-size:1.6rem; font-weight:800; color:#1a1a2e; margin-bottom:1.75rem; }
+
+@media(max-width:768px){
+  .content { padding:1rem; padding-top:4rem; }
+  .pageTitle { font-size:1.3rem; margin-bottom:1.25rem; }
+}
 
 /* ── KPI cards ── */
 .kpiGrid {
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:1rem; margin-bottom:1.75rem;
+}
+@media(max-width:480px){
+  .kpiGrid { grid-template-columns:1fr 1fr; gap:0.75rem; }
+  .kpiValue { font-size:1.25rem; }
 }
 .kpiCard {
   background:#fff; border-radius:14px; padding:1.1rem 1.25rem;
@@ -122,10 +162,18 @@ tbody tr:hover { background:#f9fafb; }
   position:fixed; inset:0; background:rgba(0,0,0,0.45);
   display:flex; align-items:center; justify-content:center;
   z-index:200; padding:1rem;
+  overflow-y:auto;
 }
 .modal {
   background:#fff; border-radius:16px; width:100%; max-width:540px;
   box-shadow:0 24px 60px rgba(0,0,0,0.18); overflow:hidden;
+  max-height:90vh; overflow-y:auto;
+}
+@media(max-width:600px){
+  .modal { border-radius:12px; margin:auto; }
+  .modalRow { grid-template-columns:1fr !important; }
+  .modalForm { padding:1.1rem; }
+  .modalHeader { padding:1rem 1.1rem; }
 }
 .modalHeader {
   display:flex; justify-content:space-between; align-items:center;
