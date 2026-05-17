@@ -72,6 +72,7 @@
 .formWrap {
   max-width: 560px;
   margin: 0 auto;
+  padding-bottom: 3rem;
 }
 
 .form {
