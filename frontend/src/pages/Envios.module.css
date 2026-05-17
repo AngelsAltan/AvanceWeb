@@ -3,7 +3,6 @@
   background: #f5f7ff;
   padding: 2rem;
   box-sizing: border-box;
-  overflow-x: hidden;
 }
 
 .header {
@@ -60,7 +59,6 @@
   padding: 2rem;
   box-shadow: 0 4px 20px rgba(67, 97, 238, 0.08);
   box-sizing: border-box;
-  overflow-y: auto;
 }
 
 @media (max-width: 600px) {

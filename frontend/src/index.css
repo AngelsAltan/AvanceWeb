@@ -15,9 +15,15 @@
 	box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
 	margin: 0;
 	font-family: var(--font-subtitle);
 	background: #ffffff;
 	color: var(--blue-dark);
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
