@@ -1,56 +1,130 @@
-## Aeropaq
+# SkyShip Express
 
-Documentacion visual del proyecto (wireframe, mockup y prototipos de flujos). Este README no incluye instrucciones de ejecucion.
+Plataforma web para gestión de envíos internacionales. Permite a los clientes cotizar y registrar envíos, y a los administradores gestionar usuarios, envíos y visualizar métricas del negocio.
 
-## Documentacion (README)
+---
 
-a. Tecnologias y versiones.
-- Frontend: React 19 + Vite.
-- Estilos: CSS Modules.
-- Herramientas: ESLint.
-- Lenguaje: JavaScript (ES Modules).
-- Entorno: Node.js (version LTS recomendada) y npm.
+## Tecnologías utilizadas
 
-b. Como ejecutar el proyecto de frontend.<br>
-1. Instalar dependencias.
-	- `cd frontend`
-	- `npm install`<br>
-2. Ejecutar en desarrollo.
-	- `npm run dev`<br>
-3. Abrir la URL local que muestra Vite en la terminal.
+### Frontend
+- **React 19** + **Vite** — SPA con hot-reload en desarrollo
+- **React Router v7** — Rutas protegidas con `ProtectedRoute`
+- **CSS Modules** — Estilos encapsulados por componente, sin colisiones
+- **country-state-city** — Selector de países y departamentos/estados
 
-c. Decisiones tecnicas relevantes (estructura de componentes, rutas, etc.)
-- Componentes modulares por seccion, cada uno con su JSX y CSS Module.
-- Estructura por componentes para facilitar el trabajo en equipo (eramos dos personas y asi pudimos dividir los modulos).
-- Vite como bundler por la rapidez para levantar el proyecto, hot restart y buena carga de CSS.
-- Composicion de secciones en una sola pagina.
-- Single-page app sin rutas; la navegacion es por anclas a secciones.
+### Backend
+- **Flask 3.1.1** — API REST con patrón factory (`create_app()`)
+- **Flask-JWT-Extended** — Autenticación con tokens JWT en `localStorage`
+- **Flask-SQLAlchemy** — ORM para modelos de base de datos
+- **Flask-CORS** — Permitir peticiones desde el frontend en desarrollo
+- **Werkzeug** — Hash seguro de contraseñas con `generate_password_hash`
 
-- Librerias adicionales:
-	- Swiper (carrusel/slider): https://swiperjs.com/
-		- Documentacion oficial: https://swiperjs.com/get-started
-	- Country State City (catalogo de paises/estados/ciudades): https://www.npmjs.com/package/country-state-city
+### Base de datos
+- **MySQL** en **AWS RDS** (región `us-east-2`)
+- Tablas: `users`, `shipments`, `contacts`
 
-### Wireframe
+### Infraestructura
+- **AWS Elastic Beanstalk** — Despliegue del backend Flask
+- **AWS Amplify** — Despliegue del frontend React
+- **Vite proxy** — `/api` → `http://localhost:5000` en desarrollo local
 
-- Movil y desktop: https://www.figma.com/design/J6ciiCWjRB1omdsqCBqXxJ/Programacion-Web---Proyecto-1----Wireframes?node-id=0-1&t=fRD3dtzQhxVG78iD-1
+---
 
-### Mockup
+## Estructura del proyecto
 
-- Movil: https://www.figma.com/proto/cbDOyqWDD8jeqB5FZat4B2/Programacion-Web---Proyecto-1----Movil-Mockup?node-id=4002-74&p=f&t=rPXtX9t4QdClvzwZ-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=4002%3A74
-- Desktop: https://www.figma.com/proto/D3DFmW2wdV2jjce3CZ0G1s/Programacion-Web---Proyecto-1----Desktop-Mockup?node-id=2021-16&p=f&t=AKUrOY20KEt32qFb-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=2021%3A16
+```
+aeropaq22/
+├── backend/
+│   ├── app.py              # Factory Flask, registra blueprints, seed admin
+│   ├── extensions.py       # Instancias de db y jwt
+│   ├── models.py           # Modelos: User, Shipment, Contact
+│   ├── requirements.txt
+│   ├── .env                # (excluido de git) DATABASE_URL, JWT_SECRET_KEY
+│   └── routes/
+│       ├── auth.py         # /api/auth/register, /login, /me
+│       ├── envios.py       # /api/envios (GET, POST) — autenticado
+│       ├── admin.py        # /api/admin/* — solo admin
+│       └── contact.py      # /api/contact (POST) — público
+├── frontend/
+│   ├── src/
+│   │   ├── components/     # Navbar, Hero, Services, Cotizador, Contact, Footer
+│   │   ├── pages/          # Home, Login, Register, Envios, Admin
+│   │   ├── context/        # AuthContext (usuario, token, login, logout)
+│   │   └── router/         # AppRouter con ProtectedRoute
+│   └── vite.config.js      # Proxy /api
+└── .gitignore
+```
 
-### Hoja de Calculo (Contactos)
+---
 
-- Link: https://docs.google.com/spreadsheets/d/1mDUt6178FNRrCniIoipTwF1DSIGLMEojoPtmoD0-PBg/edit?usp=sharing
+## Cómo correr el proyecto localmente
 
-### Prototipo de flujos
+### 1. Backend
 
-- Movil: usar el prototipo del mockup movil (link arriba).
-- Desktop: usar el prototipo del mockup desktop (link arriba).
+```bash
+cd backend
+# Crea .env con:
+# DATABASE_URL=mysql+pymysql://usuario:password@host/db
+# JWT_SECRET_KEY=clave-secreta
 
-### Alcance de los flujos
+py -m pip install -r requirements.txt
+py app.py
+# Corre en http://localhost:5000
+```
 
-- Navegacion principal entre secciones
-- Visualizacion de servicios y planes
-- Contacto y cotizaciones
+### 2. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Corre en http://localhost:5173
+# Las peticiones /api se proxean al backend automáticamente
+```
+
+### 3. Build para producción
+
+```bash
+cd frontend
+npm run deploy
+# Genera el build y copia a backend/static/
+# Luego desde la carpeta backend/: eb deploy
+```
+
+---
+
+## Credenciales de prueba
+
+| Rol           | Correo              | Contraseña   |
+|---------------|---------------------|--------------|
+| Administrador | admin@skyship.com   | Admin123456! |
+| Cliente       | Registrarse en /register | —       |
+
+> El administrador se crea automáticamente al iniciar el backend si no existe.
+
+---
+
+## Funcionalidades principales
+
+### Clientes
+- Registro con validación de contraseña (8+ caracteres, mayúscula, número, carácter especial)
+- Cotizador de envíos: selección de ruta, país, departamento, peso, servicio y adicionales
+- Historial de envíos con código de guía y estado en tiempo real
+- Formulario de contacto conectado a la base de datos
+
+### Administrador
+- Dashboard con 6 KPIs: clientes, envíos totales, ingresos, ticket promedio, peso total, ingresos express
+- 3 widgets visuales: gauge de tasa de entrega, comparación de ingresos estándar/express, desglose por estado
+- Gráficas: envíos por mes, top destinos, distribución por estado, distribución por servicio
+- CRUD completo de usuarios (crear, editar, eliminar)
+- CRUD de envíos (editar estado, eliminar)
+
+---
+
+## Decisiones técnicas
+
+- **JWT en localStorage**: Simplicidad para un proyecto académico. En producción se recomendaría `httpOnly cookies`.
+- **Costo calculado en frontend**: El cotizador calcula el costo con toda la lógica (ruta, extras, factor express) y envía `costo_estimado` al backend. Esto evita duplicar la lógica de negocio.
+- **Sin librería de gráficas**: Todos los visuales (donut, barras, gauge) están hechos con CSS puro (`conic-gradient`) y SVG inline para mantener el bundle ligero.
+- **country-state-city**: Paquete npm para obtener países y estados sin llamadas a APIs externas.
+- **Proxy Vite**: Permite desarrollar frontend y backend por separado sin problemas de CORS. En producción el frontend se sirve como archivos estáticos desde Flask, eliminando la necesidad del proxy.
