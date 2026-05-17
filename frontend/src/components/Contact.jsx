@@ -75,29 +75,22 @@ export default function Contact() {
 		setCargando(true);
 
 		try {
-			const scriptURL =
-				"https://script.google.com/macros/s/AKfycbxPchSk7KufFM8Ygs4RPJqQelUAGAWbWDMUv4v0DCMwD7oyNTklf45GVn-7GAhexNYUHg/exec";
 			const extensionSeleccionada = extensiones.find(
 				(ext) => ext.id === datos.telefonoExtension
 			);
 			const telefonoConExtension = extensionSeleccionada
-				? `'${extensionSeleccionada.dial} ${datos.telefono}`
-				: `'${datos.telefono}`;
+				? `${extensionSeleccionada.dial} ${datos.telefono}`
+				: datos.telefono;
 
-			const payload = {
-				...datos,
-				telefono: telefonoConExtension,
-			};
-			delete payload.telefonoExtension;
-
-			const formData = new FormData();
-			Object.entries(payload).forEach(([key, value]) => {
-				formData.append(key, value);
-			});
-
-			const res = await fetch(scriptURL, {
+			const res = await fetch("/api/contact", {
 				method: "POST",
-				body: formData,
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					nombre:   datos.nombre,
+					correo:   datos.correo,
+					telefono: telefonoConExtension,
+					mensaje:  datos.mensaje,
+				}),
 			});
 
 			if (res.ok) {

@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
@@ -7,12 +8,28 @@ from models import User
 auth_bp = Blueprint("auth", __name__)
 
 
+def _validar_password(password):
+    if len(password) < 8:
+        return "La contraseña debe tener al menos 8 caracteres"
+    if not re.search(r"[A-Z]", password):
+        return "La contraseña debe tener al menos una mayúscula"
+    if not re.search(r"[0-9]", password):
+        return "La contraseña debe tener al menos un número"
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return "La contraseña debe tener al menos un carácter especial"
+    return None
+
+
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
     required = ["nombre", "correo", "password"]
     if not all(k in data for k in required):
         return jsonify({"error": "Faltan campos requeridos"}), 400
+
+    error_pw = _validar_password(data["password"])
+    if error_pw:
+        return jsonify({"error": error_pw}), 400
 
     if User.query.filter_by(correo=data["correo"]).first():
         return jsonify({"error": "El correo ya está registrado"}), 409

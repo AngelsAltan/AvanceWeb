@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import styles from "./Auth.module.css";
+
+const reglas = [
+  { id: "len",     label: "Mínimo 8 caracteres",       test: (p) => p.length >= 8 },
+  { id: "upper",   label: "Al menos una mayúscula",     test: (p) => /[A-Z]/.test(p) },
+  { id: "number",  label: "Al menos un número",         test: (p) => /[0-9]/.test(p) },
+  { id: "special", label: "Al menos un carácter especial (!@#$...)", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
 
 export default function Register() {
   const { login } = useAuth();
@@ -11,11 +18,19 @@ export default function Register() {
   });
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [pwTouched, setPwTouched] = useState(false);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === "password") setPwTouched(true);
+  };
+
+  const resultados = useMemo(() => reglas.map((r) => ({ ...r, ok: r.test(form.password) })), [form.password]);
+  const pwValida = resultados.every((r) => r.ok);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!pwValida) { setError("La contraseña no cumple los requisitos"); return; }
     setError("");
     setCargando(true);
     try {
@@ -61,9 +76,22 @@ export default function Register() {
           </div>
           <div className={styles.field}>
             <label>Contraseña</label>
-            <input type="password" name="password" value={form.password} onChange={handleChange} required minLength={6} />
+            <input
+              type="password" name="password"
+              value={form.password} onChange={handleChange}
+              required
+            />
+            {pwTouched && (
+              <ul className={styles.pwRules}>
+                {resultados.map((r) => (
+                  <li key={r.id} className={r.ok ? styles.pwOk : styles.pwFail}>
+                    {r.ok ? "✓" : "✗"} {r.label}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          <button type="submit" className={styles.btn} disabled={cargando}>
+          <button type="submit" className={styles.btn} disabled={cargando || !pwValida}>
             {cargando ? "Creando cuenta..." : "Registrarse"}
           </button>
         </form>

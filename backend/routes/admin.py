@@ -56,13 +56,55 @@ def stats():
         .all()
     )
 
+    # Envíos por estado (individuales)
+    pendientes   = Shipment.query.filter_by(estado="pendiente").count()
+    en_transito  = Shipment.query.filter_by(estado="en_tránsito").count()
+    entregados   = Shipment.query.filter_by(estado="entregado").count()
+
+    # Ticket promedio
+    promedio = db.session.query(func.avg(Shipment.costo_estimado)).scalar() or 0
+
+    # Peso total enviado
+    peso_total = db.session.query(func.sum(Shipment.peso)).scalar() or 0
+
+    # Tasa de entrega (entregados / total * 100)
+    tasa_entrega = round((entregados / total_envios * 100), 1) if total_envios else 0
+
+    # Ingresos express
+    ingresos_express = db.session.query(
+        func.sum(Shipment.costo_estimado)
+    ).filter_by(tipo_servicio="express").scalar() or 0
+
+    # Top 8 regiones (país extraído del campo destino "Estado, País")
+    todos_destinos = db.session.query(Shipment.destino).all()
+    regiones: dict = {}
+    for (destino,) in todos_destinos:
+        if destino and "," in destino:
+            region = destino.split(",")[-1].strip()
+        elif destino:
+            region = destino.strip()
+        else:
+            region = "Desconocido"
+        regiones[region] = regiones.get(region, 0) + 1
+    top_regiones = dict(
+        sorted(regiones.items(), key=lambda x: x[1], reverse=True)[:8]
+    )
+
     return jsonify({
-        "total_usuarios": total_usuarios,
-        "total_envios": total_envios,
-        "ingresos_totales": round(float(ingresos), 2),
-        "por_mes": [{"anio": int(r.anio), "mes": int(r.mes), "total": r.total} for r in por_mes],
+        "total_usuarios":    total_usuarios,
+        "total_envios":      total_envios,
+        "ingresos_totales":  round(float(ingresos), 2),
+        "envios_pendientes": pendientes,
+        "envios_transito":   en_transito,
+        "envios_entregados": entregados,
+        "ticket_promedio":   round(float(promedio), 2),
+        "peso_total":        round(float(peso_total), 2),
+        "tasa_entrega":      tasa_entrega,
+        "ingresos_express":  round(float(ingresos_express), 2),
+        "por_mes":    [{"anio": int(r.anio), "mes": int(r.mes), "total": r.total} for r in por_mes],
         "por_estado": {r[0]: r[1] for r in por_estado},
         "por_servicio": {r[0]: r[1] for r in por_servicio},
+        "por_region": top_regiones,
     }), 200
 
 
@@ -76,6 +118,30 @@ def get_usuarios():
         return err
     usuarios = User.query.order_by(User.creado_en.desc()).all()
     return jsonify([u.to_dict() for u in usuarios]), 200
+
+
+@admin_bp.route("/usuarios", methods=["POST"])
+@jwt_required()
+def create_usuario():
+    _, err = _require_admin()
+    if err:
+        return err
+    data = request.get_json()
+    if not all(k in data for k in ("nombre", "correo", "password")):
+        return jsonify({"error": "Faltan campos requeridos"}), 400
+    if User.query.filter_by(correo=data["correo"]).first():
+        return jsonify({"error": "El correo ya está registrado"}), 409
+    user = User(
+        nombre=data["nombre"],
+        correo=data["correo"],
+        telefono=data.get("telefono", ""),
+        direccion=data.get("direccion", ""),
+        rol=data.get("rol", "cliente"),
+        password_hash=generate_password_hash(data["password"]),
+    )
+    db.session.add(user)
+    db.session.commit()
+    return jsonify(user.to_dict()), 201
 
 
 @admin_bp.route("/usuarios/<int:uid>", methods=["PUT"])

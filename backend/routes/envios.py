@@ -48,7 +48,12 @@ def create_envio():
     while Shipment.query.filter_by(codigo_guia=codigo).first():
         codigo = _generar_codigo()
 
-    costo = _calcular_costo(float(data["peso"]), data["tipo_servicio"])
+    # Si el frontend ya calculó el costo (con extras/ruta), lo usa directamente
+    if "costo_estimado" in data:
+        costo = float(data["costo_estimado"])
+    else:
+        costo = _calcular_costo(float(data["peso"]), data["tipo_servicio"])
+
     envio = Shipment(
         codigo_guia=codigo,
         usuario_id=user_id,
