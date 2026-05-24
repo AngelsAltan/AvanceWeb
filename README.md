@@ -95,12 +95,13 @@ npm run deploy
 
 ## Credenciales de prueba
 
-| Rol           | Correo              | Contraseña   |
-|---------------|---------------------|--------------|
-| Administrador | admin@skyship.com   | Admin123456! |
-| Cliente       | Registrarse en /register | —       |
+| Rol           | Correo               | Contraseña   |
+|---------------|----------------------|--------------|
+| Administrador | admin@skyship.com    | Admin123456  |
+| Cliente       | cliente@skyship.com  | Cliente123!  |
 
-> El administrador se crea automáticamente al iniciar el backend si no existe.
+> Ambas cuentas se crean automáticamente al iniciar el backend si no existen.
+> También puedes registrar nuevos clientes desde `/register`.
 
 ---
 

@@ -24,6 +24,7 @@ def create_app():
     with app.app_context():
         db.create_all()
         _seed_admin()
+        _seed_demo_client()
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
@@ -49,6 +50,23 @@ def _seed_admin():
             rol="admin",
         )
         db.session.add(admin)
+        db.session.commit()
+
+
+def _seed_demo_client():
+    from models import User
+    from werkzeug.security import generate_password_hash
+
+    if not User.query.filter_by(correo="cliente@skyship.com").first():
+        cliente = User(
+            nombre="Cliente Demo",
+            correo="cliente@skyship.com",
+            telefono="55555555",
+            direccion="Zona 10, Ciudad de Guatemala",
+            password_hash=generate_password_hash("Cliente123!"),
+            rol="cliente",
+        )
+        db.session.add(cliente)
         db.session.commit()
 
 

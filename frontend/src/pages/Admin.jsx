@@ -1,49 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import styles from "./Admin.module.css";
 
 const ESTADO_OPTS = ["pendiente", "en_tránsito", "entregado"];
 const ROL_OPTS    = ["cliente", "admin"];
 const MESES       = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const C_ESTADO    = { pendiente:"#f59e0b", "en_tránsito":"#3b82f6", entregado:"#10b981" };
-const C_SERVICIO  = { standard:"#6366f1", express:"#f97316" };
-const C_PALETTE   = ["#6366f1","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#ec4899"];
-
-/* ── SVG icon paths ────────────────────────────────────────────────────────── */
-const ICONS = {
-  users:     "M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
-  package:   "M20 7l-8-4-8 4v10l8 4 8-4V7zm-8 1.18L15.76 10 12 11.82 8.24 10 12 8.18zM6 18.18V12l5 2.5v6.35L6 18.18zm8 2.85V14.5l5-2.5v6.18l-5 2.5z",
-  money:     "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z",
-  chart:     "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z",
-  weight:    "M12 3c-1.2 0-2.1.9-2.1 2.1 0 .78.43 1.46 1.05 1.82V9H7L5 20h14L17 9h-4V6.92c.62-.36 1.05-1.04 1.05-1.82C14.05 3.9 13.2 3 12 3z",
-  lightning: "M7 2v11h3v9l7-12h-4l4-8z",
-  dashboard: "M3 3h8v8H3zm0 10h8v8H3zm10 0h8v8h-8zm0-10h8v8h-8z",
-  person:    "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z",
-  truck:     "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z",
-};
-
-function Icon({ name, size = 20, color = "currentColor" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} className={styles.navIcon}>
-      <path d={ICONS[name]} />
-    </svg>
-  );
-}
-
-/* ── KPI definitions ─────────────────────────────────────────────────────────── */
-const KPI_DEFS = [
-  { key:"total_usuarios",   label:"Clientes",        icon:"users",     iconColor:"#3b82f6", iconBg:"#eff6ff",  fmt: v => v },
-  { key:"total_envios",     label:"Total de envíos", icon:"package",   iconColor:"#10b981", iconBg:"#f0fdf4",  fmt: v => v },
-  { key:"ingresos_totales", label:"Ingresos",        icon:"money",     iconColor:"#8b5cf6", iconBg:"#faf5ff",  fmt: v => `Q${v.toLocaleString("es-GT",{minimumFractionDigits:2})}` },
-  { key:"ticket_promedio",  label:"Ticket promedio", icon:"chart",     iconColor:"#e11d48", iconBg:"#fff1f2",  fmt: v => `Q${v.toFixed(2)}` },
-  { key:"peso_total",       label:"Peso total",      icon:"weight",    iconColor:"#64748b", iconBg:"#f8fafc",  fmt: v => `${v.toLocaleString()} lbs` },
-  { key:"ingresos_express", label:"Express",         icon:"lightning", iconColor:"#f97316", iconBg:"#fff7ed",  fmt: v => `Q${v.toLocaleString("es-GT",{minimumFractionDigits:2})}` },
-];
-
-const TABS = [
-  { id: "dashboard", label: "Dashboard", icon: "dashboard" },
-  { id: "usuarios",  label: "Usuarios",  icon: "person"    },
-  { id: "envios",    label: "Envíos",    icon: "truck"     },
-];
+const C_SERVICIO  = { standard:"#2563eb", express:"#f97316" };
+const C_PALETTE   = ["#2563eb","#facc15","#1e3a8a","#10b981","#f97316","#8b5cf6","#06b6d4","#ef4444"];
 
 function authHdr() {
   return { Authorization: `Bearer ${localStorage.getItem("token")}` };
@@ -54,8 +17,9 @@ async function api(url, opts = {}) {
     headers: { "Content-Type": "application/json", ...authHdr(), ...(opts.headers || {}) },
   });
 }
+const fmtQ = v => `Q${Number(v).toLocaleString("es-GT", { minimumFractionDigits: 2 })}`;
 
-/* ── Gráfico de barras horizontal ─────────────────────────────────────────── */
+/* ── Gráfico de barras horizontal ── */
 function BarChart({ data, colores }) {
   const entries = Object.entries(data);
   const max = Math.max(...entries.map(([, v]) => v), 1);
@@ -65,10 +29,15 @@ function BarChart({ data, colores }) {
         <div key={label} className={styles.barRow}>
           <span className={styles.barLabel}>{label.replace(/_/g, " ")}</span>
           <div className={styles.barTrack}>
-            <div className={styles.barFill} style={{
-              width: `${(val / max) * 100}%`,
-              background: Array.isArray(colores) ? colores[i % colores.length] : (colores[label] || "#6366f1"),
-            }} />
+            <div
+              className={styles.barFill}
+              style={{
+                width: `${(val / max) * 100}%`,
+                background: Array.isArray(colores)
+                  ? colores[i % colores.length]
+                  : (colores[label] || "#4361ee"),
+              }}
+            />
           </div>
           <span className={styles.barValue}>{val}</span>
         </div>
@@ -77,7 +46,7 @@ function BarChart({ data, colores }) {
   );
 }
 
-/* ── Donut chart ──────────────────────────────────────────────────────────── */
+/* ── Donut chart ── */
 function DonutChart({ data, colores }) {
   const total = Object.values(data).reduce((s, v) => s + v, 0);
   if (!total) return <p className={styles.empty}>Sin datos aún</p>;
@@ -92,13 +61,18 @@ function DonutChart({ data, colores }) {
   const grad = segs.map(s => `${s.color} ${s.start}% ${s.start + s.pct}%`).join(",");
   return (
     <div className={styles.donutWrap}>
-      <div className={styles.donut} style={{ background: `conic-gradient(${grad})` }} />
+      <div className={styles.donut} style={{ background: `conic-gradient(${grad})` }}>
+        <div className={styles.donutHole}>
+          <span className={styles.donutTotal}>{total}</span>
+          <span className={styles.donutCaption}>total</span>
+        </div>
+      </div>
       <div className={styles.donutLegend}>
         {segs.map(s => (
           <div key={s.k} className={styles.legendItem}>
             <span className={styles.legendDot} style={{ background: s.color }} />
-            <span style={{ textTransform:"capitalize" }}>{s.k.replace(/_/g," ")}</span>
-            <strong style={{ marginLeft:"auto", paddingLeft:"0.5rem" }}>{s.v}</strong>
+            <span style={{ textTransform: "capitalize" }}>{s.k.replace(/_/g, " ")}</span>
+            <strong>{s.v}</strong>
           </div>
         ))}
       </div>
@@ -106,43 +80,41 @@ function DonutChart({ data, colores }) {
   );
 }
 
-/* ── Gauge — Tasa de entrega ──────────────────────────────────────────────── */
+/* ── Gauge circular — Tasa de entrega ── */
 function GaugeTasa({ valor }) {
-  const clamped = Math.min(Math.max(valor, 0), 100);
-  const circunf = 2 * Math.PI * 52;
-  const relleno = (clamped / 100) * circunf;
-  const color   = clamped >= 80 ? "#10b981" : clamped >= 50 ? "#f59e0b" : "#ef4444";
+  const clamped  = Math.min(Math.max(valor, 0), 100);
+  const circunf  = 2 * Math.PI * 52;
+  const relleno  = (clamped / 100) * circunf;
+  const color    = clamped >= 80 ? "#10b981" : clamped >= 50 ? "#f59e0b" : "#ef4444";
   return (
     <div className={styles.gaugeWrap}>
       <svg viewBox="0 0 120 120" className={styles.gaugeSvg}>
-        <circle cx="60" cy="60" r="52" fill="none" stroke="#f1f5f9" strokeWidth="10" />
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#eef2fb" strokeWidth="11" />
         <circle cx="60" cy="60" r="52" fill="none"
-          stroke={color} strokeWidth="10"
+          stroke={color} strokeWidth="11"
           strokeDasharray={`${relleno} ${circunf}`}
           strokeLinecap="round"
           transform="rotate(-90 60 60)"
         />
         <text x="60" y="56" textAnchor="middle" dominantBaseline="middle"
-          fontSize="22" fontWeight="800" fill="#0d0d1a">{clamped}%</text>
-        <text x="60" y="76" textAnchor="middle" fontSize="9" fill="#94a3b8">entregados</text>
+          fontSize="23" fontWeight="800" fill="#0f172a">{clamped}%</text>
+        <text x="60" y="78" textAnchor="middle" fontSize="9" fill="#94a3b8">entregados</text>
       </svg>
-      <p className={styles.gaugeLabel}>Tasa de entrega</p>
     </div>
   );
 }
 
-/* ── Barras de ingresos ───────────────────────────────────────────────────── */
+/* ── Barras comparativas de ingresos ── */
 function IngresosBars({ totales, express }) {
   const standard = Math.max(totales - express, 0);
-  const max = Math.max(totales, 1);
-  const fmt = v => `Q${v.toLocaleString("es-GT", { minimumFractionDigits: 2 })}`;
-  const items = [
-    { label:"Estándar", valor:standard, color:"#6366f1" },
-    { label:"Express",  valor:express,  color:"#f97316" },
+  const max      = Math.max(totales, 1);
+  const items    = [
+    { label: "Estándar", valor: standard, color: "#4361ee" },
+    { label: "Express",  valor: express,  color: "#f97316" },
   ];
   return (
     <div className={styles.ingrWrap}>
-      <p className={styles.ingrTotal}>{fmt(totales)}</p>
+      <p className={styles.ingrTotal}>{fmtQ(totales)}</p>
       <p className={styles.ingrSub}>ingresos totales</p>
       <div className={styles.ingrBars}>
         {items.map(({ label, valor, color }) => (
@@ -150,10 +122,11 @@ function IngresosBars({ totales, express }) {
             <div className={styles.ingrMeta}>
               <span className={styles.ingrDot} style={{ background: color }} />
               <span className={styles.ingrLabel}>{label}</span>
-              <span className={styles.ingrAmt}>{fmt(valor)}</span>
+              <span className={styles.ingrAmt}>{fmtQ(valor)}</span>
             </div>
             <div className={styles.ingrTrack}>
-              <div className={styles.ingrFill} style={{ width:`${(valor/max)*100}%`, background:color }} />
+              <div className={styles.ingrFill}
+                style={{ width: `${(valor / max) * 100}%`, background: color }} />
             </div>
           </div>
         ))}
@@ -162,270 +135,121 @@ function IngresosBars({ totales, express }) {
   );
 }
 
-/* ── Estado de envíos ─────────────────────────────────────────────────────── */
+/* ── Estado de envíos con progreso ── */
 function EstadoWidget({ pendientes, transito, entregados }) {
   const total = pendientes + transito + entregados || 1;
   const items = [
-    { label:"Pendientes",  valor:pendientes, color:"#f59e0b", bg:"#fef3c7", txt:"#92400e" },
-    { label:"En tránsito", valor:transito,   color:"#3b82f6", bg:"#dbeafe", txt:"#1e40af" },
-    { label:"Entregados",  valor:entregados, color:"#10b981", bg:"#d1fae5", txt:"#065f46" },
+    { label: "Pendientes",  valor: pendientes, color: "#f59e0b", bg: "#fef3c7", txt: "#92400e" },
+    { label: "En tránsito", valor: transito,   color: "#3b82f6", bg: "#dbeafe", txt: "#1e40af" },
+    { label: "Entregados",  valor: entregados,  color: "#10b981", bg: "#d1fae5", txt: "#065f46" },
   ];
   return (
     <div className={styles.estadoWrap}>
       {items.map(({ label, valor, color, bg, txt }) => (
         <div key={label} className={styles.estadoItem}>
           <div className={styles.estadoTop}>
-            <span className={styles.estadoBadge} style={{ background:bg, color:txt }}>{label}</span>
+            <span className={styles.estadoBadge} style={{ background: bg, color: txt }}>{label}</span>
             <span className={styles.estadoNum}>{valor}</span>
           </div>
           <div className={styles.estadoTrack}>
-            <div className={styles.estadoFill} style={{ width:`${(valor/total)*100}%`, background:color }} />
+            <div className={styles.estadoFill}
+              style={{ width: `${(valor / total) * 100}%`, background: color }} />
           </div>
-          <span className={styles.estadoPct}>{((valor/total)*100).toFixed(1)}%</span>
         </div>
       ))}
     </div>
   );
 }
 
-/* ── Dashboard ────────────────────────────────────────────────────────────── */
+/* ── Vista General · Bento Grid ── */
 function Dashboard({ stats }) {
-  if (!stats) return (
-    <div className={styles.loading}>
-      <div className={styles.loadingSpinner} />
-      <span>Cargando métricas...</span>
-    </div>
-  );
+  if (!stats) return <div className={styles.loading}>Cargando métricas...</div>;
 
   const mesPorMes = Object.fromEntries(
     stats.por_mes.map(d => [`${MESES[d.mes]} ${d.anio}`, d.total])
   );
 
+  const kpis = [
+    { label: "Clientes",        value: stats.total_usuarios,    accent: "#2563eb" },
+    { label: "Envíos totales",  value: stats.total_envios,      accent: "#10b981" },
+    { label: "Ingresos",        value: fmtQ(stats.ingresos_totales ?? 0), accent: "#1e3a8a" },
+    { label: "Ticket promedio", value: fmtQ(stats.ticket_promedio ?? 0),  accent: "#facc15" },
+    { label: "Peso total",      value: `${Number(stats.peso_total ?? 0).toLocaleString("es-GT")} lbs`, accent: "#64748b" },
+    { label: "Ingresos express",value: fmtQ(stats.ingresos_express ?? 0),  accent: "#f97316" },
+  ];
+
   return (
-    <>
-      {/* KPIs */}
-      <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>Métricas generales</h2>
-      </div>
-      <div className={styles.kpiGrid}>
-        {KPI_DEFS.map(({ key, label, icon, iconColor, iconBg, fmt }) => (
-          <div key={key} className={styles.kpiCard}>
-            <div className={styles.kpiIconWrap} style={{ background: iconBg }}>
-              <Icon name={icon} size={22} color={iconColor} />
-            </div>
-            <div className={styles.kpiBody}>
-              <p className={styles.kpiLabel}>{label}</p>
-              <p className={styles.kpiValue}>{fmt(stats[key] ?? 0)}</p>
-            </div>
-          </div>
-        ))}
+    <div className={styles.bento}>
+      {kpis.map(k => (
+        <div key={k.label} className={`${styles.bentoCard} ${styles.kpiTile}`}>
+          <span className={styles.kpiDot} style={{ background: k.accent }} />
+          <p className={styles.kpiTileLabel}>{k.label}</p>
+          <p className={styles.kpiTileValue}>{k.value}</p>
+        </div>
+      ))}
+
+      <div className={`${styles.bentoCard} ${styles.c2x2}`}>
+        <h3 className={styles.cardTitle}>Envíos por mes</h3>
+        {stats.por_mes.length === 0
+          ? <p className={styles.empty}>Sin datos aún</p>
+          : <BarChart data={mesPorMes} colores={C_PALETTE} />}
       </div>
 
-      {/* Widgets visuales */}
-      <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>Rendimiento</h2>
-      </div>
-      <div className={styles.widgetRow}>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Tasa de entrega</h3>
-          <GaugeTasa valor={stats.tasa_entrega ?? 0} />
-        </div>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Distribución de ingresos</h3>
-          <IngresosBars totales={stats.ingresos_totales ?? 0} express={stats.ingresos_express ?? 0} />
-        </div>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Estado de envíos</h3>
-          <EstadoWidget
-            pendientes={stats.envios_pendientes ?? 0}
-            transito={stats.envios_transito ?? 0}
-            entregados={stats.envios_entregados ?? 0}
-          />
-        </div>
+      <div className={`${styles.bentoCard} ${styles.c1x2}`}>
+        <h3 className={styles.cardTitle}>Tasa de entrega</h3>
+        <GaugeTasa valor={stats.tasa_entrega ?? 0} />
       </div>
 
-      {/* Gráficas */}
-      <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>Análisis</h2>
+      <div className={`${styles.bentoCard} ${styles.c1x2}`}>
+        <h3 className={styles.cardTitle}>Estado de envíos</h3>
+        <EstadoWidget
+          pendientes={stats.envios_pendientes ?? 0}
+          transito={stats.envios_transito ?? 0}
+          entregados={stats.envios_entregados ?? 0}
+        />
       </div>
-      <div className={styles.chartsGrid}>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Envíos por mes</h3>
-          {stats.por_mes.length === 0
-            ? <p className={styles.empty}>Sin datos aún</p>
-            : <BarChart data={mesPorMes} colores={C_PALETTE} />}
-        </div>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Top destinos</h3>
-          {Object.keys(stats.por_region).length === 0
-            ? <p className={styles.empty}>Sin datos aún</p>
-            : <BarChart data={stats.por_region} colores={C_PALETTE} />}
-        </div>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Estado de envíos</h3>
-          <DonutChart data={stats.por_estado} colores={C_ESTADO} />
-        </div>
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Tipo de servicio</h3>
-          <DonutChart data={stats.por_servicio} colores={C_SERVICIO} />
-        </div>
-      </div>
-    </>
-  );
-}
 
-/* ── Modal genérico ───────────────────────────────────────────────────────── */
-function Modal({ titulo, onClose, children }) {
-  return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{titulo}</h2>
-          <button className={styles.modalClose} onClick={onClose}>✕</button>
-        </div>
-        {children}
+      <div className={`${styles.bentoCard} ${styles.c2x1}`}>
+        <h3 className={styles.cardTitle}>Distribución de ingresos</h3>
+        <IngresosBars totales={stats.ingresos_totales ?? 0} express={stats.ingresos_express ?? 0} />
+      </div>
+
+      <div className={`${styles.bentoCard} ${styles.c2x2}`}>
+        <h3 className={styles.cardTitle}>Top destinos</h3>
+        {Object.keys(stats.por_region).length === 0
+          ? <p className={styles.empty}>Sin datos aún</p>
+          : <BarChart data={stats.por_region} colores={C_PALETTE} />}
+      </div>
+
+      <div className={`${styles.bentoCard} ${styles.c2x1}`}>
+        <h3 className={styles.cardTitle}>Estado de envíos</h3>
+        <DonutChart data={stats.por_estado} colores={C_ESTADO} />
+      </div>
+
+      <div className={`${styles.bentoCard} ${styles.c2x1}`}>
+        <h3 className={styles.cardTitle}>Tipo de servicio</h3>
+        <DonutChart data={stats.por_servicio} colores={C_SERVICIO} />
       </div>
     </div>
   );
 }
 
-/* ── CRUD Usuarios ────────────────────────────────────────────────────────── */
-function GestionUsuarios() {
-  const [usuarios, setUsuarios] = useState([]);
-  const [modal,    setModal]    = useState(null);
-  const [form,     setForm]     = useState({});
-  const [error,    setError]    = useState("");
-  const [cargando, setCargando] = useState(false);
-
-  const load = useCallback(async () => {
-    const r = await api("/api/admin/usuarios");
-    if (r.ok) setUsuarios(await r.json());
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const abrirCrear = () => {
-    setForm({ nombre:"", correo:"", telefono:"", direccion:"", rol:"cliente", password:"" });
-    setError(""); setModal("crear");
-  };
-  const abrirEditar = (u) => {
-    setForm({ nombre:u.nombre, correo:u.correo, telefono:u.telefono||"", direccion:u.direccion||"", rol:u.rol, password:"" });
-    setError(""); setModal(u);
-  };
-  const cerrar = () => setModal(null);
-
-  const guardar = async () => {
-    setError(""); setCargando(true);
-    const url    = modal === "crear" ? "/api/admin/usuarios" : `/api/admin/usuarios/${modal.id}`;
-    const method = modal === "crear" ? "POST" : "PUT";
-    const r = await api(url, { method, body: JSON.stringify(form) });
-    const d = await r.json();
-    setCargando(false);
-    if (!r.ok) { setError(d.error || "Error al guardar"); return; }
-    cerrar(); load();
-  };
-
-  const eliminar = async (id) => {
-    if (!confirm("¿Eliminar este usuario?")) return;
-    await api(`/api/admin/usuarios/${id}`, { method:"DELETE" });
-    load();
-  };
-
-  const chg = e => setForm({ ...form, [e.target.name]: e.target.value });
-
+/* ── Estado vacío del panel de detalle ── */
+function EmptyDetail({ texto }) {
   return (
-    <div className={styles.tableCard}>
-      <div className={styles.tableHeader}>
-        <span className={styles.tableTitle}>Usuarios ({usuarios.length})</span>
-        <button className={styles.btnNew} onClick={abrirCrear}>+ Nuevo usuario</button>
-      </div>
-      <div className={styles.tableWrapper}>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th><th>Nombre</th><th>Correo</th><th>Teléfono</th>
-              <th>Rol</th><th>Registrado</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.map(u => (
-              <tr key={u.id}>
-                <td style={{ color:"#94a3b8", fontSize:"0.8rem" }}>#{u.id}</td>
-                <td><strong>{u.nombre}</strong></td>
-                <td>{u.correo}</td>
-                <td>{u.telefono || "—"}</td>
-                <td>
-                  <span className={`${styles.badge} ${u.rol === "admin" ? styles.badgeAdmin : styles.badgeCliente}`}>
-                    {u.rol}
-                  </span>
-                </td>
-                <td style={{ color:"#94a3b8" }}>{new Date(u.creado_en).toLocaleDateString("es-GT")}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <button className={styles.btnEdit}   onClick={() => abrirEditar(u)}>Editar</button>
-                    <button className={styles.btnDelete} onClick={() => eliminar(u.id)}>Eliminar</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {usuarios.length === 0 && <p className={styles.empty}>No hay usuarios registrados.</p>}
-      </div>
-
-      {modal && (
-        <Modal titulo={modal === "crear" ? "Nuevo usuario" : "Editar usuario"} onClose={cerrar}>
-          {error && <div className={styles.modalError}>{error}</div>}
-          <div className={styles.modalForm}>
-            <div className={styles.modalRow}>
-              <div className={styles.mField}>
-                <label>Nombre *</label>
-                <input name="nombre" value={form.nombre} onChange={chg} />
-              </div>
-              <div className={styles.mField}>
-                <label>Teléfono</label>
-                <input name="telefono" value={form.telefono} onChange={chg} />
-              </div>
-            </div>
-            <div className={styles.mField}>
-              <label>Correo *</label>
-              <input name="correo" type="email" value={form.correo} onChange={chg} />
-            </div>
-            <div className={styles.mField}>
-              <label>Dirección</label>
-              <input name="direccion" value={form.direccion} onChange={chg} />
-            </div>
-            <div className={styles.modalRow}>
-              <div className={styles.mField}>
-                <label>Rol</label>
-                <select name="rol" value={form.rol} onChange={chg}>
-                  {ROL_OPTS.map(r => <option key={r}>{r}</option>)}
-                </select>
-              </div>
-              <div className={styles.mField}>
-                <label>{modal === "crear" ? "Contraseña *" : "Nueva contraseña"}</label>
-                <input name="password" type="password" value={form.password} onChange={chg}
-                  placeholder={modal !== "crear" ? "Dejar vacío para no cambiar" : ""} />
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.btnCancel} onClick={cerrar}>Cancelar</button>
-              <button className={styles.btnSave} onClick={guardar} disabled={cargando}>
-                {cargando ? "Guardando..." : "Guardar"}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+    <div className={styles.detailEmpty}>
+      <div className={styles.detailEmptyIcon} aria-hidden>◧</div>
+      <p>{texto}</p>
     </div>
   );
 }
 
-/* ── CRUD Envíos ──────────────────────────────────────────────────────────── */
-function GestionEnvios() {
+/* ── Logística de Envíos · Split-Pane ── */
+function LogisticaEnvios() {
   const [envios,   setEnvios]   = useState([]);
-  const [modal,    setModal]    = useState(null);
+  const [sel,      setSel]      = useState(null);
   const [form,     setForm]     = useState({});
+  const [q,        setQ]        = useState("");
   const [error,    setError]    = useState("");
   const [cargando, setCargando] = useState(false);
 
@@ -433,190 +257,377 @@ function GestionEnvios() {
     const r = await api("/api/admin/envios");
     if (r.ok) setEnvios(await r.json());
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  const abrirEditar = (e) => {
-    setForm({ destino:e.destino, peso:e.peso, tipo_servicio:e.tipo_servicio, estado:e.estado, costo_estimado:e.costo_estimado });
-    setError(""); setModal(e);
+  const seleccionar = (e) => {
+    setSel(e);
+    setForm({ destino: e.destino, peso: e.peso, tipo_servicio: e.tipo_servicio, estado: e.estado, costo_estimado: e.costo_estimado });
+    setError("");
   };
-  const cerrar = () => setModal(null);
+  const chg = e => setForm({ ...form, [e.target.name]: e.target.value });
 
   const guardar = async () => {
-    setError(""); setCargando(true);
-    const r = await api(`/api/admin/envios/${modal.id}`, { method:"PUT", body:JSON.stringify(form) });
+    setCargando(true); setError("");
+    const r = await api(`/api/admin/envios/${sel.id}`, { method: "PUT", body: JSON.stringify(form) });
     const d = await r.json();
     setCargando(false);
     if (!r.ok) { setError(d.error || "Error al guardar"); return; }
-    cerrar(); load();
+    await load();
+    setSel(s => ({ ...s, ...d }));
   };
 
-  const eliminar = async (id) => {
+  const eliminar = async () => {
     if (!confirm("¿Eliminar este envío?")) return;
-    await api(`/api/admin/envios/${id}`, { method:"DELETE" });
+    await api(`/api/admin/envios/${sel.id}`, { method: "DELETE" });
+    setSel(null);
     load();
   };
 
-  const chg = e => setForm({ ...form, [e.target.name]: e.target.value });
-  const estadoClass = { pendiente:styles.badgePendiente, "en_tránsito":styles.badgeTransito, entregado:styles.badgeEntregado };
+  const filtrados = useMemo(() => {
+    const t = q.toLowerCase().trim();
+    if (!t) return envios;
+    return envios.filter(e =>
+      e.codigo_guia?.toLowerCase().includes(t) ||
+      e.destino?.toLowerCase().includes(t) ||
+      e.usuario_nombre?.toLowerCase().includes(t)
+    );
+  }, [envios, q]);
+
+  const estadoClass = { pendiente: styles.badgePendiente, "en_tránsito": styles.badgeTransito, entregado: styles.badgeEntregado };
 
   return (
-    <div className={styles.tableCard}>
-      <div className={styles.tableHeader}>
-        <span className={styles.tableTitle}>Envíos ({envios.length})</span>
-      </div>
-      <div className={styles.tableWrapper}>
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th><th>Cliente</th><th>Destino</th><th>Peso</th>
-              <th>Servicio</th><th>Estado</th><th>Costo</th><th>Fecha</th><th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {envios.map(e => (
-              <tr key={e.id}>
-                <td><strong style={{ color:"#6366f1" }}>{e.codigo_guia}</strong></td>
-                <td>{e.usuario_nombre}</td>
-                <td>{e.destino}</td>
-                <td>{e.peso} lbs</td>
-                <td style={{ textTransform:"capitalize" }}>{e.tipo_servicio}</td>
-                <td>
-                  <span className={`${styles.badge} ${estadoClass[e.estado] || ""}`}>
-                    {e.estado.replace("_"," ")}
-                  </span>
-                </td>
-                <td><strong>Q{Number(e.costo_estimado).toFixed(2)}</strong></td>
-                <td style={{ color:"#94a3b8" }}>{new Date(e.creado_en).toLocaleDateString("es-GT")}</td>
-                <td>
-                  <div className={styles.actions}>
-                    <button className={styles.btnEdit}   onClick={() => abrirEditar(e)}>Editar</button>
-                    <button className={styles.btnDelete} onClick={() => eliminar(e.id)}>Eliminar</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {envios.length === 0 && <p className={styles.empty}>No hay envíos registrados.</p>}
+    <div className={`${styles.split} ${sel ? styles.splitDetailOpen : ""}`}>
+      {/* Lista */}
+      <div className={styles.listPane}>
+        <div className={styles.listSearch}>
+          <input
+            placeholder="Buscar por código, destino o cliente..."
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+        </div>
+        <div className={styles.listCount}>{filtrados.length} envíos</div>
+        <div className={styles.listScroll}>
+          {filtrados.map(e => (
+            <button
+              key={e.id}
+              className={`${styles.itemCard} ${sel?.id === e.id ? styles.itemActive : ""}`}
+              onClick={() => seleccionar(e)}
+            >
+              <div className={styles.itemTop}>
+                <strong>{e.codigo_guia}</strong>
+                <span className={`${styles.badge} ${estadoClass[e.estado] || ""}`}>
+                  {e.estado.replace("_", " ")}
+                </span>
+              </div>
+              <div className={styles.itemDest}>{e.destino}</div>
+              <div className={styles.itemMeta}>
+                <span>{e.usuario_nombre}</span>
+                <span className={styles.itemPrice}>{fmtQ(e.costo_estimado)}</span>
+              </div>
+            </button>
+          ))}
+          {filtrados.length === 0 && <p className={styles.empty}>Sin resultados.</p>}
+        </div>
       </div>
 
-      {modal && (
-        <Modal titulo={`Editar — ${modal.codigo_guia}`} onClose={cerrar}>
-          {error && <div className={styles.modalError}>{error}</div>}
-          <div className={styles.modalForm}>
-            <div className={styles.mField}>
-              <label>Destino</label>
-              <input name="destino" value={form.destino} onChange={chg} />
+      {/* Detalle */}
+      <div className={styles.detailPane}>
+        {!sel ? (
+          <EmptyDetail texto="Selecciona un envío de la lista para ver y editar sus detalles." />
+        ) : (
+          <div className={styles.detailInner}>
+            <button className={styles.backBtn} onClick={() => setSel(null)}>← Volver</button>
+            <div className={styles.detailHeader}>
+              <div>
+                <p className={styles.detailEyebrow}>Envío</p>
+                <h2 className={styles.detailTitle}>{sel.codigo_guia}</h2>
+                <p className={styles.detailSub}>
+                  {sel.usuario_nombre} · {new Date(sel.creado_en).toLocaleDateString("es-GT")}
+                </p>
+              </div>
+              <span className={`${styles.badge} ${estadoClass[sel.estado] || ""} ${styles.badgeLg}`}>
+                {sel.estado.replace("_", " ")}
+              </span>
             </div>
-            <div className={styles.modalRow}>
-              <div className={styles.mField}>
+
+            {error && <div className={styles.formError}>{error}</div>}
+
+            <div className={styles.formGrid}>
+              <div className={`${styles.field} ${styles.fieldFull}`}>
+                <label>Destino</label>
+                <input name="destino" value={form.destino} onChange={chg} />
+              </div>
+              <div className={styles.field}>
                 <label>Peso (lbs)</label>
                 <input name="peso" type="number" step="0.1" value={form.peso} onChange={chg} />
               </div>
-              <div className={styles.mField}>
+              <div className={styles.field}>
                 <label>Servicio</label>
                 <select name="tipo_servicio" value={form.tipo_servicio} onChange={chg}>
                   <option value="standard">Standard</option>
                   <option value="express">Express</option>
                 </select>
               </div>
-            </div>
-            <div className={styles.modalRow}>
-              <div className={styles.mField}>
+              <div className={styles.field}>
                 <label>Estado</label>
                 <select name="estado" value={form.estado} onChange={chg}>
                   {ESTADO_OPTS.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
-              <div className={styles.mField}>
+              <div className={styles.field}>
                 <label>Costo estimado (Q)</label>
                 <input name="costo_estimado" type="number" step="0.01" value={form.costo_estimado} onChange={chg} />
               </div>
             </div>
-            <div className={styles.modalActions}>
-              <button className={styles.btnCancel} onClick={cerrar}>Cancelar</button>
-              <button className={styles.btnSave} onClick={guardar} disabled={cargando}>
-                {cargando ? "Guardando..." : "Guardar"}
+
+            <div className={styles.detailActions}>
+              <button className={styles.btnDanger} onClick={eliminar}>Eliminar</button>
+              <button className={styles.btnPrimary} onClick={guardar} disabled={cargando}>
+                {cargando ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-/* ── Admin principal ──────────────────────────────────────────────────────── */
+/* ── Control de Usuarios · Split-Pane ── */
+function ControlUsuarios() {
+  const [usuarios, setUsuarios] = useState([]);
+  const [sel,      setSel]      = useState(null);   // objeto usuario | "nuevo" | null
+  const [form,     setForm]     = useState({});
+  const [claveAdmin, setClaveAdmin] = useState("");
+  const [q,        setQ]        = useState("");
+  const [error,    setError]    = useState("");
+  const [cargando, setCargando] = useState(false);
+
+  const load = useCallback(async () => {
+    const r = await api("/api/admin/usuarios");
+    if (r.ok) setUsuarios(await r.json());
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const nuevo = () => {
+    setSel("nuevo");
+    setForm({ nombre: "", correo: "", telefono: "", direccion: "", rol: "cliente", password: "" });
+    setClaveAdmin("");
+    setError("");
+  };
+  const seleccionar = (u) => {
+    setSel(u);
+    setForm({ nombre: u.nombre, correo: u.correo, telefono: u.telefono || "", direccion: u.direccion || "", rol: u.rol, password: "" });
+    setClaveAdmin("");
+    setError("");
+  };
+  const chg = e => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const esNuevo = sel === "nuevo";
+  const rolBloqueado = !esNuevo && sel?.rol === "admin";          // un admin no puede degradarse
+  const pideClave = form.rol === "admin" && (esNuevo || sel?.rol !== "admin"); // promover a admin requiere clave
+
+  const guardar = async () => {
+    setCargando(true); setError("");
+    const url    = esNuevo ? "/api/admin/usuarios" : `/api/admin/usuarios/${sel.id}`;
+    const method = esNuevo ? "POST" : "PUT";
+    const r = await api(url, { method, body: JSON.stringify({ ...form, clave_admin: claveAdmin }) });
+    const d = await r.json();
+    setCargando(false);
+    if (!r.ok) { setError(d.error || "Error al guardar"); return; }
+    await load();
+    setSel(d);
+    setForm(f => ({ ...f, password: "" }));
+    setClaveAdmin("");
+  };
+
+  const eliminar = async () => {
+    if (esNuevo) return;
+    if (!confirm("¿Eliminar este usuario?")) return;
+    await api(`/api/admin/usuarios/${sel.id}`, { method: "DELETE" });
+    setSel(null);
+    load();
+  };
+
+  const filtrados = useMemo(() => {
+    const t = q.toLowerCase().trim();
+    if (!t) return usuarios;
+    return usuarios.filter(u =>
+      u.nombre?.toLowerCase().includes(t) ||
+      u.correo?.toLowerCase().includes(t)
+    );
+  }, [usuarios, q]);
+
+  return (
+    <div className={`${styles.split} ${sel ? styles.splitDetailOpen : ""}`}>
+      {/* Lista */}
+      <div className={styles.listPane}>
+        <div className={styles.listSearch}>
+          <input
+            placeholder="Buscar usuario..."
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+          <button className={styles.btnNew} onClick={nuevo}>+ Nuevo</button>
+        </div>
+        <div className={styles.listCount}>{filtrados.length} usuarios</div>
+        <div className={styles.listScroll}>
+          {filtrados.map(u => (
+            <button
+              key={u.id}
+              className={`${styles.itemCard} ${styles.userItem} ${sel?.id === u.id ? styles.itemActive : ""}`}
+              onClick={() => seleccionar(u)}
+            >
+              <div className={styles.avatar}>{(u.nombre || "?").charAt(0).toUpperCase()}</div>
+              <div className={styles.itemBody}>
+                <div className={styles.itemTop}>
+                  <strong>{u.nombre}</strong>
+                  <span className={`${styles.badge} ${u.rol === "admin" ? styles.badgeAdmin : styles.badgeCliente}`}>
+                    {u.rol}
+                  </span>
+                </div>
+                <div className={styles.itemMetaSmall}>{u.correo}</div>
+              </div>
+            </button>
+          ))}
+          {filtrados.length === 0 && <p className={styles.empty}>Sin resultados.</p>}
+        </div>
+      </div>
+
+      {/* Detalle */}
+      <div className={styles.detailPane}>
+        {!sel ? (
+          <EmptyDetail texto="Selecciona un usuario o pulsa + Nuevo para crear uno." />
+        ) : (
+          <div className={styles.detailInner}>
+            <button className={styles.backBtn} onClick={() => setSel(null)}>← Volver</button>
+            <div className={styles.detailHeader}>
+              <div className={styles.avatarLg}>
+                {esNuevo ? "+" : (sel.nombre || "?").charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className={styles.detailEyebrow}>{esNuevo ? "Nuevo registro" : "Usuario"}</p>
+                <h2 className={styles.detailTitle}>{esNuevo ? "Crear usuario" : sel.nombre}</h2>
+                {!esNuevo && (
+                  <p className={styles.detailSub}>
+                    Registrado el {new Date(sel.creado_en).toLocaleDateString("es-GT")}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {error && <div className={styles.formError}>{error}</div>}
+
+            <div className={styles.formGrid}>
+              <div className={styles.field}>
+                <label>Nombre *</label>
+                <input name="nombre" value={form.nombre} onChange={chg} />
+              </div>
+              <div className={styles.field}>
+                <label>Teléfono</label>
+                <input name="telefono" value={form.telefono} onChange={chg} />
+              </div>
+              <div className={`${styles.field} ${styles.fieldFull}`}>
+                <label>Correo *</label>
+                <input name="correo" type="email" value={form.correo} onChange={chg} />
+              </div>
+              <div className={`${styles.field} ${styles.fieldFull}`}>
+                <label>Dirección</label>
+                <input name="direccion" value={form.direccion} onChange={chg} />
+              </div>
+              <div className={styles.field}>
+                <label>Rol</label>
+                <select name="rol" value={form.rol} onChange={chg} disabled={rolBloqueado}>
+                  {ROL_OPTS.map(r => <option key={r}>{r}</option>)}
+                </select>
+                {rolBloqueado && (
+                  <span className={styles.fieldHint}>El rol de administrador no puede cambiarse.</span>
+                )}
+              </div>
+              <div className={styles.field}>
+                <label>{esNuevo ? "Contraseña *" : "Nueva contraseña"}</label>
+                <input
+                  name="password" type="password" value={form.password} onChange={chg}
+                  placeholder={esNuevo ? "" : "Dejar vacío para no cambiar"}
+                />
+              </div>
+              {pideClave && (
+                <div className={`${styles.field} ${styles.fieldFull} ${styles.fieldClave}`}>
+                  <label>🔑 Clave de autorización *</label>
+                  <input
+                    type="password"
+                    value={claveAdmin}
+                    onChange={e => setClaveAdmin(e.target.value)}
+                    placeholder="Requerida para otorgar el rol de administrador"
+                  />
+                  <span className={styles.fieldHint}>
+                    Solo el jefe posee esta clave. Sin ella no se puede crear ni promover a un administrador.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.detailActions}>
+              {!esNuevo && sel.rol === "admin" && (
+                <span className={styles.protectedNote}>🔒 Cuenta protegida</span>
+              )}
+              {!esNuevo && sel.rol !== "admin" && (
+                <button className={styles.btnDanger} onClick={eliminar}>Eliminar</button>
+              )}
+              <button className={styles.btnPrimary} onClick={guardar} disabled={cargando}>
+                {cargando ? "Guardando..." : esNuevo ? "Crear usuario" : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Admin principal ── */
+const TABS = [
+  { id: "dashboard", label: "Vista General"       },
+  { id: "envios",    label: "Logística de Envíos" },
+  { id: "usuarios",  label: "Control de Usuarios" },
+];
+
 export default function Admin() {
-  const [tab,         setTab]         = useState("dashboard");
-  const [stats,       setStats]       = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tab,   setTab]   = useState("dashboard");
+  const [stats, setStats] = useState(null);
 
   const loadStats = useCallback(async () => {
     const r = await api("/api/admin/stats");
     if (r.ok) setStats(await r.json());
   }, []);
-
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const cambiarTab = (id) => { setTab(id); setSidebarOpen(false); };
-
-  const tabTitles = { dashboard: "Dashboard", usuarios: "Gestión de Usuarios", envios: "Gestión de Envíos" };
-  const today = new Date().toLocaleDateString("es-GT", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-
   return (
-    <div className={styles.page}>
-      {/* Hamburger mobile */}
-      <button className={styles.hamburger} onClick={() => setSidebarOpen(o => !o)} aria-label="Menú">
-        {sidebarOpen ? "✕" : "☰"}
-      </button>
-
-      {sidebarOpen && <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />}
-
-      {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${sidebarOpen ? styles.open : ""}`}>
-        <div className={styles.sidebarAccent} />
-        <div className={styles.sidebarBrand}>
-          <div className={styles.brandMark}>S</div>
-          <div className={styles.brandName}>SkyShip Express</div>
-          <div className={styles.brandSub}>Panel de control</div>
+    <div className={styles.app}>
+      <header className={styles.topbar}>
+        <div className={styles.brand}>
+          <span className={styles.brandDot} />
+          SkyShip <span className={styles.brandLight}>Admin</span>
         </div>
+        <nav className={styles.segmented}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              className={`${styles.segItem} ${tab === t.id ? styles.segActive : ""}`}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className={styles.topRight} />
+      </header>
 
-        <div className={styles.sidebarSection}>Navegación</div>
-        {TABS.map(t => (
-          <button key={t.id}
-            className={`${styles.sidebarLink} ${tab === t.id ? styles.active : ""}`}
-            onClick={() => cambiarTab(t.id)}>
-            <Icon name={t.icon} size={18} color="currentColor" />
-            {t.label}
-          </button>
-        ))}
-
-        <div className={styles.sidebarFooter}>v1.0 · SkyShip Express</div>
-      </aside>
-
-      {/* Main */}
-      <main className={styles.content}>
-        <div className={styles.topbar}>
-          <div className={styles.topbarLeft}>
-            <span className={styles.topbarTitle}>
-              {tab === "dashboard" && <><span>Sky</span>Ship Dashboard</>}
-              {tab === "usuarios"  && "Gestión de Usuarios"}
-              {tab === "envios"    && "Gestión de Envíos"}
-            </span>
-            <span className={styles.topbarSub}>{today}</span>
-          </div>
-          <div className={styles.topbarRight}>
-            <span className={styles.topbarBadge}>Admin</span>
-          </div>
-        </div>
-
-        <div className={styles.inner}>
-          {tab === "dashboard" && <Dashboard stats={stats} />}
-          {tab === "usuarios"  && <GestionUsuarios />}
-          {tab === "envios"    && <GestionEnvios />}
-        </div>
+      <main className={styles.canvas}>
+        {tab === "dashboard" && <Dashboard stats={stats} />}
+        {tab === "envios"    && <LogisticaEnvios />}
+        {tab === "usuarios"  && <ControlUsuarios />}
       </main>
     </div>
   );

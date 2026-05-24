@@ -7,6 +7,9 @@ from models import User, Shipment
 
 admin_bp = Blueprint("admin", __name__)
 
+# Clave de autorización que solo posee el jefe para otorgar rol de administrador
+ADMIN_SECRET = "Ellie$2302$"
+
 
 def _require_admin():
     user_id = int(get_jwt_identity())
@@ -131,12 +134,15 @@ def create_usuario():
         return jsonify({"error": "Faltan campos requeridos"}), 400
     if User.query.filter_by(correo=data["correo"]).first():
         return jsonify({"error": "El correo ya está registrado"}), 409
+    rol = data.get("rol", "cliente")
+    if rol == "admin" and data.get("clave_admin") != ADMIN_SECRET:
+        return jsonify({"error": "Clave de autorización incorrecta para asignar el rol de administrador"}), 403
     user = User(
         nombre=data["nombre"],
         correo=data["correo"],
         telefono=data.get("telefono", ""),
         direccion=data.get("direccion", ""),
-        rol=data.get("rol", "cliente"),
+        rol=rol,
         password_hash=generate_password_hash(data["password"]),
     )
     db.session.add(user)
@@ -152,6 +158,15 @@ def update_usuario(uid):
         return err
     user = User.query.get_or_404(uid)
     data = request.get_json()
+
+    # Reglas de cambio de rol
+    nuevo_rol = data.get("rol")
+    if nuevo_rol and nuevo_rol != user.rol:
+        if user.rol == "admin" and nuevo_rol != "admin":
+            return jsonify({"error": "Un administrador no puede convertirse en cliente"}), 403
+        if nuevo_rol == "admin" and data.get("clave_admin") != ADMIN_SECRET:
+            return jsonify({"error": "Clave de autorización incorrecta para asignar el rol de administrador"}), 403
+
     for field in ("nombre", "correo", "telefono", "direccion", "rol"):
         if field in data:
             setattr(user, field, data[field])
@@ -168,6 +183,8 @@ def delete_usuario(uid):
     if err:
         return err
     user = User.query.get_or_404(uid)
+    if user.rol == "admin":
+        return jsonify({"error": "No se puede eliminar una cuenta de administrador"}), 403
     db.session.delete(user)
     db.session.commit()
     return jsonify({"mensaje": "Usuario eliminado"}), 200
