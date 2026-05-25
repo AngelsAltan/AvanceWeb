@@ -19,6 +19,35 @@ async function api(url, opts = {}) {
 }
 const fmtQ = v => `Q${Number(v).toLocaleString("es-GT", { minimumFractionDigits: 2 })}`;
 
+/* ── Notificaciones (toast) ── */
+function useToast() {
+  const [toast, setToast] = useState(null);
+  const notify = useCallback((msg, type = "success") => {
+    setToast({ msg, type, id: Date.now() });
+  }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
+  return [toast, notify];
+}
+
+function Toast({ toast }) {
+  if (!toast) return null;
+  const esError = toast.type === "error";
+  return (
+    <div
+      key={toast.id}
+      className={`${styles.toast} ${esError ? styles.toastError : styles.toastSuccess}`}
+      role="status"
+    >
+      <span className={styles.toastIcon}>{esError ? "✕" : "✓"}</span>
+      <span>{toast.msg}</span>
+    </div>
+  );
+}
+
 /* ── Gráfico de barras horizontal ── */
 function BarChart({ data, colores }) {
   const entries = Object.entries(data);
@@ -245,7 +274,7 @@ function EmptyDetail({ texto }) {
 }
 
 /* ── Logística de Envíos · Split-Pane ── */
-function LogisticaEnvios() {
+function LogisticaEnvios({ notify }) {
   const [envios,   setEnvios]   = useState([]);
   const [sel,      setSel]      = useState(null);
   const [form,     setForm]     = useState({});
@@ -271,16 +300,20 @@ function LogisticaEnvios() {
     const r = await api(`/api/admin/envios/${sel.id}`, { method: "PUT", body: JSON.stringify(form) });
     const d = await r.json();
     setCargando(false);
-    if (!r.ok) { setError(d.error || "Error al guardar"); return; }
+    if (!r.ok) { setError(d.error || "Error al guardar"); notify(d.error || "Error al guardar", "error"); return; }
     await load();
     setSel(s => ({ ...s, ...d }));
+    notify(`Envío ${sel.codigo_guia} actualizado correctamente`);
   };
 
   const eliminar = async () => {
     if (!confirm("¿Eliminar este envío?")) return;
-    await api(`/api/admin/envios/${sel.id}`, { method: "DELETE" });
+    const codigo = sel.codigo_guia;
+    const r = await api(`/api/admin/envios/${sel.id}`, { method: "DELETE" });
+    if (!r.ok) { notify("No se pudo eliminar el envío", "error"); return; }
     setSel(null);
     load();
+    notify(`Envío ${codigo} eliminado`);
   };
 
   const filtrados = useMemo(() => {
@@ -395,7 +428,7 @@ function LogisticaEnvios() {
 }
 
 /* ── Control de Usuarios · Split-Pane ── */
-function ControlUsuarios() {
+function ControlUsuarios({ notify }) {
   const [usuarios, setUsuarios] = useState([]);
   const [sel,      setSel]      = useState(null);   // objeto usuario | "nuevo" | null
   const [form,     setForm]     = useState({});
@@ -435,7 +468,8 @@ function ControlUsuarios() {
     const r = await api(url, { method, body: JSON.stringify({ ...form, clave_admin: claveAdmin }) });
     const d = await r.json();
     setCargando(false);
-    if (!r.ok) { setError(d.error || "Error al guardar"); return; }
+    if (!r.ok) { setError(d.error || "Error al guardar"); notify(d.error || "Error al guardar", "error"); return; }
+    notify(esNuevo ? `Usuario ${d.nombre} creado correctamente` : `Usuario ${d.nombre} actualizado correctamente`);
     await load();
     setSel(d);
     setForm(f => ({ ...f, password: "" }));
@@ -445,9 +479,16 @@ function ControlUsuarios() {
   const eliminar = async () => {
     if (esNuevo) return;
     if (!confirm("¿Eliminar este usuario?")) return;
-    await api(`/api/admin/usuarios/${sel.id}`, { method: "DELETE" });
+    const nombre = sel.nombre;
+    const r = await api(`/api/admin/usuarios/${sel.id}`, { method: "DELETE" });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      notify(d.error || "No se pudo eliminar el usuario", "error");
+      return;
+    }
     setSel(null);
     load();
+    notify(`Usuario ${nombre} eliminado`);
   };
 
   const filtrados = useMemo(() => {
@@ -596,6 +637,7 @@ const TABS = [
 export default function Admin() {
   const [tab,   setTab]   = useState("dashboard");
   const [stats, setStats] = useState(null);
+  const [toast, notify]   = useToast();
 
   const loadStats = useCallback(async () => {
     const r = await api("/api/admin/stats");
@@ -626,9 +668,11 @@ export default function Admin() {
 
       <main className={styles.canvas}>
         {tab === "dashboard" && <Dashboard stats={stats} />}
-        {tab === "envios"    && <LogisticaEnvios />}
-        {tab === "usuarios"  && <ControlUsuarios />}
+        {tab === "envios"    && <LogisticaEnvios notify={notify} />}
+        {tab === "usuarios"  && <ControlUsuarios notify={notify} />}
       </main>
+
+      <Toast toast={toast} />
     </div>
   );
 }
